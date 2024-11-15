@@ -1,0 +1,15 @@
+How many orders were shipped by Speedy Express in total?
+
+Tables: shopify_orders, shopify_carriers
+
+shopify_orders
+order_id	shop_id	user_id	order_amount	total_items	payment_method	created_at	resp_employee_id	carrier_id
+1	53	746	224	2	cash	2017-03-13 12:36:56	313	485
+2	92	925	90	1	cash	2017-03-03 17:38:52	315	483
+
+shopify_carriers
+id	name
+482	Jet Delivery
+483	Road Runner
+484	Speedy Express
+485	Express It
