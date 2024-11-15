@@ -1,0 +1,51 @@
+Find contract starting dates of the top 5 most paid Lyft drivers. Consider only drivers who are still working with Lyft.
+index	start_date	end_date	yearly_salary
+0	2018-04-02		48303
+1	2018-05-30		67973
+2	2015-04-05		56685
+3	2015-01-08		51320
+4	2017-03-09		67507
+5	2015-09-07		55155
+6	2016-05-22	2018-08-06	35847
+7	2015-09-29	2018-07-20	46974
+8	2015-09-15	2019-04-30	54316
+9	2015-09-20	2017-12-31	56185
+10	2018-04-25	2018-04-28	79536
+11	2017-12-10	2018-10-03	56844
+12	2017-11-16		41523
+13	2016-09-15		38169
+14	2015-11-30	2018-04-24	89270
+15	2018-05-29		87766
+16	2015-05-17	2017-02-08	64876
+17	2017-05-07		88828
+18	2018-11-09		82993
+19	2015-10-26		58965
+20	2015-04-23	2017-01-30	71683
+21	2015-01-18	2015-05-26	68708
+22	2016-12-25		85329
+23	2015-05-11	2018-03-29	72366
+24	2018-03-24	2019-01-04	84812
+25	2018-02-26	2018-08-11	67102
+26	2016-05-12	2018-10-02	88599
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, max, when
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("TopPaidDrivers").getOrCreate()
+
+# Read the data from the CSV file
+df = spark.read.format("csv").option("header", "true").load("lyft_drivers.csv")
+
+# Filter for active drivers (end_date is null)
+active_drivers = df.filter(col("end_date").isNull())
+
+# Find the top 5 highest-paid active drivers
+top_5_drivers = active_drivers.orderBy(col("yearly_salary").desc()).limit(5)
+
+# Select the start_date for these top 5 drivers
+result = top_5_drivers.select("start_date")
+
+# Show the result
+result.show()
