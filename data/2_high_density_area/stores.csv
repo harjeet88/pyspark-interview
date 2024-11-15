@@ -1,0 +1,5 @@
+store_id,store_location,store_open_date,area_name,area_size
+1,Location A,2020-01-01,A,1000
+2,Location B,2021-02-15,B,800
+3,Location C,2022-03-10,C,500
+4,Location D,2023-04-05,D,700
