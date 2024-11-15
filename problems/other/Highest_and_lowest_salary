@@ -1,0 +1,86 @@
+You have been asked to find the employees with the highest and lowest salary from the below sample data for worker and t.The output includes a column salary_type that categorizes the output by:
+‘Highest Salary’ represents the highest salary
+‘Lowest Salary’ represents the lowest salary
+
+worker:
+|worker_id|first_name|last_name|salary|joining_date| department|
+| 1| John| Doe| 5000| 2023–01–01|Engineering|
+| 2| Jane| Smith| 6000| 2023–01–15| Marketing|
+| 3| Alice| Johnson| 4500| 2023–02–05|Engineering|
+
+title:
+|worker_ref_id|worker_title|affected_from|
+| 1| Engineer| 2022–01–01|
+| 2| Manager| 2022–01–01|
+| 3| Engineer| 2022–01–01|
+
+
+Solution 1
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import max, min, when
+
+spark = SparkSession.builder \
+    .appName("HighestLowestSalaryEmployees") \
+    .getOrCreate()
+
+worker_data = [
+    (1, 'John', 'Doe', 5000, '2023-01-01', 'Engineering'),
+    (2, 'Jane', 'Smith', 6000, '2023-01-15', 'Marketing'),
+    (3, 'Alice', 'Johnson', 4500, '2023-02-05', 'Engineering')
+]
+title_data = [
+    (1, 'Engineer', '2022-01-01'),
+    (2, 'Manager', '2022-01-01'),
+    (3, 'Engineer', '2022-01-01')
+]
+worker_columns = ['worker_id', 'first_name', 'last_name', 'salary', 'joining_date', 'department']
+title_columns = ['worker_ref_id', 'worker_title', 'affected_from']
+worker_df = spark.createDataFrame(worker_data, worker_columns)
+title_df = spark.createDataFrame(title_data, title_columns)
+worker_df.show()
+title_df.show()
+
+joined_df = worker_df.join(title_df, worker_df.worker_id == title_df.worker_ref_id, "inner")
+result_df = joined_df.groupBy("worker_id", "first_name", "last_name", "salary", "department") \
+    .agg(
+        max("salary").alias("max_salary"),
+        min("salary").alias("min_salary")
+    )
+
+result_df = result_df.withColumn("salary_type",
+                when(result_df["salary"] == result_df["max_salary"], "Highest Salary")
+                .when(result_df["salary"] == result_df["min_salary"], "Lowest Salary")
+                .otherwise(None))
+result_df.show()
+
+spark.stop()
+
+
+Solution 2
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import max, min, col
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("HighestLowestSalary").getOrCreate()
+
+# Read the data from the CSV files
+workers_df = spark.read.format("csv").load("worker.csv", header=True, inferSchema=True)
+titles_df = spark.read.format("csv").load("title.csv", header=True, inferSchema=True)
+
+# Join the two DataFrames on the worker_id
+joined_df = workers_df.join(titles_df, "worker_id")
+
+# Find the maximum and minimum salaries
+max_salary = joined_df.agg({"salary": "max"}).collect()[0][0]
+min_salary = joined_df.agg({"salary": "min"}).collect()[0][0]
+
+# Filter for the highest and lowest salaries and add a salary_type column
+result_df = joined_df.unionByName(
+    joined_df.filter(col("salary") == max_salary).withColumn("salary_type", lit("Highest Salary")),
+    joined_df.filter(col("salary") == min_salary).withColumn("salary_type", lit("Lowest Salary"))
+)
+
+# Show the result
+result_df.show()
