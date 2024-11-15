@@ -1,0 +1,49 @@
+Input —
+col1|col2|col3
+alpha| aa| 1
+alpha| aa| 2
+beta| bb| 3
+beta| bb| 4
+beta| bb| 5
+
+Output —
+col1|col2|col3_list
+alpha| aa| [1, 2]
+beta| bb|[3, 4, 5]
+
+Solution 1
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+
+spark = SparkSession.builder \
+    .appName("HighestLowestSalaryEmployees") \
+    .getOrCreate()
+
+data = [("alpha", "aa", 1),
+        ("alpha", "aa", 2),
+        ("beta", "bb", 3),
+        ("beta", "bb", 5),
+        ("beta", "bb", 4)]
+schema = ["col1", "col2", "col3"]
+df = spark.createDataFrame(data, schema=schema)
+df.show()
+df_grouped = df.groupBy("col1", "col2").agg(collect_list("col3").alias("col3_list"))
+df_grouped.show()
+spark.stop()
+
+Solution 2
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import collect_list
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("GroupAndCollect").getOrCreate()   
+
+
+# Read the data from the CSV file
+df = spark.read.format("csv").load("input.csv", header=True, inferSchema=True)
+
+# Group by col1 and col2, and collect col3 values into a list
+df = df.groupBy("col1", "col2").agg(collect_list("col3").alias("col3_list"))
+
+# Show the result
+df.show()
