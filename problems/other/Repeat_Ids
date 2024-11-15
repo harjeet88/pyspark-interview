@@ -1,0 +1,50 @@
+Given Input —
+id
+1
+2
+3
+
+Output —
+id
+1
+2
+2
+3
+3
+3
+
+Solution 1
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import expr, explode, split
+spark = SparkSession.builder \
+    .appName("Repeat ID") \
+    .getOrCreate()
+df = spark.createDataFrame([(1,), (2,), (3,)], ["id"])
+
+output_df = df.selectExpr("explode(sequence(1, id)) as id")
+
+output_df.show()
+
+Solution 2
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import explode, array
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("DuplicateRows").getOrCreate()
+
+# Read the data from the CSV file
+df = spark.read.format("csv").load("input.csv", header=True, inferSchema=True)
+
+# Create an array of 3 elements for each ID
+df = df.withColumn("repeated_id", array(col("id"), col("id"), col("id")))
+
+# Explode the array to create multiple rows
+df = df.withColumn("id", explode("repeated_id"))
+
+# Drop the temporary column
+df = df.drop("repeated_id")
+
+# Show the result
+df.show()
