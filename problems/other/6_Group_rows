@@ -47,3 +47,7 @@ df = df.groupBy("col1", "col2").agg(collect_list("col3").alias("col3_list"))
 
 # Show the result
 df.show()
+
+
+
+
