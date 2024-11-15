@@ -1,0 +1,83 @@
+Given Input -
+StudentID, StudentName , AScore, BScore,CScore
+123, A, 30, 31, 32
+124, B, 40, 41, 42
+
+Get the output in below format -
+StudentID, StudentName , Subject , Score
+123, A, AScore, 30
+123, A, BScore, 31
+123, A, CScore, 32
+124, B, AScore, 40
+124, B, BScore, 41
+124, B, SScore, 42
+
+Solution 1
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+
+spark = SparkSession.builder \
+    .appName("Transform Data") \
+    .getOrCreate()
+
+data = [
+    (123, "A", 30, 31, 32),
+    (124, "B", 40, 41, 42),
+    (125, "B", 50, 51, 52)
+]
+
+df = spark.createDataFrame(data, ["StudentID", "StudentName", "AScore", "BScore", "CScore"])
+
+pivot_df = df.selectExpr(
+    "StudentID",
+    "StudentName",
+    "stack(3, 'AScore', AScore, 'BScore', BScore, 'CScore', CScore) as (Subject, Score)"
+)
+
+pivot_df.show()
+
+Solution 2
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("StudentScores").getOrCreate()
+
+# Read the data from the CSV file
+df = spark.read.format("csv").load("students.csv", header=True, inferSchema=True)
+
+# Unpivot the DataFrame
+df = df.selectExpr(
+    "StudentID",
+    "StudentName",
+    "struct(AScore as Score, 'AScore' as Subject) as A",
+    "struct(BScore as Score, 'BScore' as Subject) as B",
+    "struct(CScore as Score, 'CScore' as Subject) as C"
+)
+
+# Explode the struct columns to get the desired output
+df = df.selectExpr(
+    "StudentID",
+    "StudentName",
+    "A.Score as Score",
+    "A.Subject as Subject"
+).unionAll(
+    df.selectExpr(
+        "StudentID",
+        "StudentName",
+        "B.Score as Score",
+        "B.Subject as Subject"
+    )
+).unionAll(
+    df.selectExpr(
+        "StudentID",
+        "StudentName",
+        "C.Score as Score",
+        "C.Subject as Subject"
+    )
+)
+
+# Show the result
+df.show()
